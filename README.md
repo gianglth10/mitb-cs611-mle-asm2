@@ -354,34 +354,6 @@ Run the full flow manually:
 python -c "from utils.datamart_full import build_bronze, build_silver, build_gold_label_and_feature_store; from utils.model_training import train_and_register_model; from utils.model_inference import run_batch_inference; from utils.model_monitoring import run_model_monitoring; build_bronze(); build_silver(); build_gold_label_and_feature_store(); train_and_register_model(); run_batch_inference(); run_model_monitoring()"
 ```
 
-## Validate The Flow
-
-Run this command after the full pipeline has completed:
-
-```powershell
-docker compose exec airflow-scheduler python -c "import pandas as pd; print('feature_store', pd.read_parquet('datamart/gold/feature_store').shape); print('predictions', pd.read_parquet('datamart/gold/model_predictions').shape); print('monitoring', pd.read_parquet('datamart/gold/model_monitoring').shape)"
-```
-
-Expected latest shapes:
-
-```text
-feature_store (11974, 52)
-predictions   (11974, 9)
-monitoring    (24, 15)
-```
-
-Check the latest model health status:
-
-```powershell
-docker compose exec airflow-scheduler python -c "import pandas as pd; print(pd.read_csv('outputs/monitoring/model_health_log.csv').tail(1).T)"
-```
-
-If you delete generated files under `outputs/` while Docker services are still running, restart MLflow before rerunning model training because MLflow stores its SQLite backend under `outputs/mlflow/`:
-
-```powershell
-docker compose up -d mlflow
-```
-
 ## Notebooks
 
 The `notebooks/` folder contains supporting notebooks for exploration and explanation:
@@ -396,22 +368,6 @@ The `notebooks/` folder contains supporting notebooks for exploration and explan
 ```
 
 These notebooks are useful for reviewing the logic, but the production-style pipeline flow is executed through the Python modules and Airflow DAGs.
-
-## Stop Or Reset
-
-Stop the services:
-
-```powershell
-docker compose down
-```
-
-Reset containers and Docker volumes, including Airflow metadata:
-
-```powershell
-docker compose down -v
-```
-
-After a reset, run `docker compose up -d` again and trigger the DAGs from Airflow.
 
 ## Author And Citation
 
