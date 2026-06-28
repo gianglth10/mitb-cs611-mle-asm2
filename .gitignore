@@ -16,7 +16,6 @@ __pycache__/
 /outputs/runtime/
 
 # Generated data and model tracking outputs
-/datamart/
 /outputs/mlruns/
 /outputs/mlartifacts/
 /outputs/model_bank/*.pkl
