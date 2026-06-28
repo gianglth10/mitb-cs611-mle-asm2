@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import pendulum
@@ -17,7 +18,11 @@ if str(PROJECT_DIR) not in sys.path:
 from utils.dag_runtime import record_task_runtime
 
 
-default_args = {"owner": "cs611", "retries": 0}
+default_args = {
+    "owner": "cs611",
+    "retries": 2,
+    "retry_delay": timedelta(minutes=5),
+}
 LOCAL_TZ = pendulum.timezone("Asia/Singapore")
 runtime_callbacks = {
     "on_success_callback": record_task_runtime,
