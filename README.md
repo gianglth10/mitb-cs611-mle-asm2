@@ -369,12 +369,10 @@ The `notebooks/` folder contains supporting notebooks for exploration and explan
 
 These notebooks are useful for reviewing the logic, but the production-style pipeline flow is executed through the Python modules and Airflow DAGs.
 
-## Author And Citation
-
-Author and course:
+## Author
 
 ```text
-Author: Giang Le (Stella)
-Under supervise of: Prof Ulysses David Chong
-Class: SMU MITB CS611 - Machine Learning Engineering
+Prepared by: Giang Le (Stella)
+Course Instructor: Prof. Ulysses David Chong
+Course: SMU MITB CS611 – Machine Learning Engineering
 ```
