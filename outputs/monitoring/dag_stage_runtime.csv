@@ -1,0 +1,2 @@
+recorded_at,dag_id,run_id,task_id,state,try_number,start_date,end_date,duration_seconds
+2026-06-28T14:58:00.458572+00:00,loan_default_ml_pipeline,scheduled__2026-06-27T02:00:00+00:00,build_bronze,success,2,2026-06-28T14:56:14.524825+00:00,2026-06-28T14:58:00.457151+00:00,105.932

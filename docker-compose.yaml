@@ -1,0 +1,170 @@
+x-airflow-common: &airflow-common
+  build: .
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+    PROJECT_DIR: /opt/airflow/project
+    PYTHONPATH: /opt/airflow/project
+    MLFLOW_TRACKING_URI: http://mlflow:5000
+  volumes:
+    - .:/opt/airflow/project
+    - ./dags:/opt/airflow/dags
+    - ./outputs/runtime/airflow/logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    mlflow:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  mlflow:
+    build: .
+    command:
+      - bash
+      - -c
+      - |
+        mkdir -p /opt/airflow/project/outputs/mlflow/mlruns /opt/airflow/project/outputs/mlflow/mlartifacts
+        chmod -R 777 /opt/airflow/project/outputs
+        mlflow server \
+          --backend-store-uri sqlite:////opt/airflow/project/outputs/mlflow/mlruns/mlflow.db \
+          --default-artifact-root file:///opt/airflow/project/outputs/mlflow/mlartifacts \
+          --host 0.0.0.0 \
+          --port 5000
+    ports:
+      - "5001:5000"
+    volumes:
+      - .:/opt/airflow/project
+    user: "${AIRFLOW_UID:-50000}:0"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: always
+
+  streamlit:
+    build: .
+    command:
+      - bash
+      - -c
+      - |
+        streamlit run /opt/airflow/project/streamlit_app.py \
+          --server.address 0.0.0.0 \
+          --server.port 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/opt/airflow/project
+    working_dir: /opt/airflow/project
+    user: "${AIRFLOW_UID:-50000}:0"
+    restart: always
+
+  jupyter:
+    build: .
+    command:
+      - bash
+      - -c
+      - |
+        jupyter lab \
+          --ip 0.0.0.0 \
+          --port 8888 \
+          --no-browser \
+          --ServerApp.token='' \
+          --ServerApp.password='' \
+          --ServerApp.root_dir=/opt/airflow/project
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/opt/airflow/project
+    working_dir: /opt/airflow/project
+    environment:
+      PROJECT_DIR: /opt/airflow/project
+      PYTHONPATH: /opt/airflow/project
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    user: "${AIRFLOW_UID:-50000}:0"
+    depends_on:
+      mlflow:
+        condition: service_started
+    restart: always
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username airflow \
+          --firstname Airflow \
+          --lastname Admin \
+          --role Admin \
+          --email airflow@example.com \
+          --password airflow || true
+        echo "Airflow metadata database and admin user are ready."
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  project-info:
+    image: alpine:3.20
+    command:
+      - sh
+      - -c
+      - |
+        echo ""
+        echo "Assignment 2 project links:"
+        echo "  Airflow:        http://localhost:8081"
+        echo "  MLflow:         http://localhost:5001"
+        echo "  JupyterLab:     http://localhost:8888/lab"
+        echo "  ML Monitoring:  http://localhost:8501"
+        echo ""
+    depends_on:
+      airflow-webserver:
+        condition: service_started
+      mlflow:
+        condition: service_started
+      jupyter:
+        condition: service_started
+      streamlit:
+        condition: service_started

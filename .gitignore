@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Environment and local config
+.env
+
+# Docker and runtime outputs
+/logs/
+/outputs/runtime/
+
+# Generated data and model tracking outputs
+/datamart/
+/outputs/mlruns/
+/outputs/mlartifacts/
+/outputs/model_bank/*.pkl
+/outputs/model_bank/candidates/*.pkl
+/outputs/runtime/
+
+# Local temporary outputs
+.Trash-*/
+tmp/
+temp/
+storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
